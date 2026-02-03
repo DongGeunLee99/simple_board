@@ -1,5 +1,6 @@
 """유저 비즈니스 로직."""
 from repositories import user_repository
+from utils import security
 
 
 def check_password(user_id: str, user_pw: str) -> bool:
@@ -21,7 +22,7 @@ def check_user_name_exists(user_name: str) -> bool:
 
 def signup(user_id_data: str, user_pw_data: str, user_birthday: str, user_name: str, user_email: str):
     user_repository.insert_user(
-        user_id_data, user_pw_data, user_birthday, user_name, user_email
+        user_id_data, security.passWordEncode(user_pw_data), user_birthday, user_name, user_email
     )
     return "회원가입 완료"
 
