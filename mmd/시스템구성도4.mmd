@@ -1,0 +1,68 @@
+	flowchart LR
+    U1[사용자]
+
+    subgraph FE[React : 3000]
+        PG[Pages / Components]
+        AX[axios API]
+    end
+
+    subgraph BE[FastAPI : 8000]
+
+            MN[main]
+        %% subgraph AL[API Layer]
+        %% end
+
+        subgraph SL[Service Layer]
+            IS[Image Service]
+            PS[Post Service]
+            US[User Service]
+            LS[Like Service]
+        end
+
+        subgraph DL[Data Access Layer]
+            IY[Image Repository]
+            PY[Post Repository]
+            UY[User Repository]
+            LY[Like Repository]
+        end
+    end
+
+    DB[(MySQL : 3306)]
+
+    %% Frontend
+    U1 --> PG
+    PG --> AX
+
+    %% Backend
+    AX --> MN
+
+    %% MN --> IS
+    %% MN --> PS
+    %% MN --> US
+    %% MN --> LS
+
+    MN -->
+    |이미지 파일 저장
+    및 경로 추출| IS
+    MN -->
+    |게시글 CRUD
+    | PS
+    MN -->
+    |회원
+    추가/조회/수정
+    |US
+    MN -->
+    |즐겨찾기
+    추가/조회/삭제
+    |LS
+
+    IS --> IY
+    PS --> PY
+    US --> UY
+    LS --> LY
+
+    %% DB
+    IY --> DB
+    PY --> DB
+    UY --> DB
+    LY --> DB

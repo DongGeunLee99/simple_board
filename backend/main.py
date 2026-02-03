@@ -1,19 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from image import router as image_router
-from post import router as post_router
-from user import router as user_router
-from like import router as like_router
+from api.image_router import router as image_router
+from api.like_router import router as like_router
+from api.post_router import router as post_router
+from api.user_router import router as user_router
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins="http://localhost:3000",  # 허용할 Origin 리스트 (필수)
-    allow_credentials=True,                 # 쿠키/세션 등 인증정보 허용
-    allow_methods=["*"],                    # 모든 HTTP 메서드 허용 (GET, POST 등)
-    allow_headers=["*"],                    # 모든 요청 헤더 허용 (Authorization 등)
+    allow_origins="http://localhost:3000",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(image_router)

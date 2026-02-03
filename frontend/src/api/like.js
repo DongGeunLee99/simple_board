@@ -1,4 +1,4 @@
-import apiClient from './db';
+import apiClient from './axiosClient';
 
 // 좋아요 토글
 export const toggleLike = async (userId, postId) => {

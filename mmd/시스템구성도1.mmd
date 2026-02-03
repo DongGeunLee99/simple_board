@@ -1,0 +1,40 @@
+flowchart LR
+    User[사용자]
+
+    subgraph Frontend[React:3000]
+        Pages[Pages / Components]
+        API[axios API]
+        subgraph ApiM[API 모듈]
+            PostAPI[post]
+            UserAPI[user]
+            LikeAPI[like]
+        end
+    end
+
+    subgraph Backend[FastAPI:8000]
+        Main[main]
+        ImageRouter[image]
+        PostRouter[post]
+        UserRouter[user]
+        LikeRouter[like]
+    end
+
+    DB[(MySQL:3306)]
+
+    User --> Pages
+    Pages --> API
+    
+    API --> PostAPI
+    API --> UserAPI
+    API --> LikeAPI
+    PostAPI --> Main
+    UserAPI --> Main
+    LikeAPI --> Main
+    Main --> ImageRouter
+    Main --> PostRouter
+    Main --> UserRouter
+    Main --> LikeRouter
+    ImageRouter --> DB
+    PostRouter --> DB
+    UserRouter --> DB
+    LikeRouter --> DB

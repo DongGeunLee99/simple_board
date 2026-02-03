@@ -1,4 +1,4 @@
-import apiClient from './db';
+import apiClient from './axiosClient';
 
 // 게시글 페이징 (전체 개수)
 export const getPaging = async () => {

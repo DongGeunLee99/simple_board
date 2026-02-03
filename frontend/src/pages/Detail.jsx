@@ -2,7 +2,7 @@ import React, { useState, useEffect} from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getPostDetail, deletePost } from '../api/post';
 import { toggleLike, checkLike } from '../api/like';
-import '../style/scrollbar.css';
+import '../styles/scrollbar.css';
 
 
 const Detail = () => {

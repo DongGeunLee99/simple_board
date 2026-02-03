@@ -1,4 +1,4 @@
-import apiClient from './db';
+import apiClient from './axiosClient';
 
 // 유저 정보 조회
 export const getUserInfo = async (userId) => {

@@ -1,0 +1,78 @@
+flowchart LR
+    U1[사용자]
+
+    subgraph FE[React:3000]
+        PG[Pages / Components]
+        AX[axios API]
+        subgraph AM[API 모듈]
+            PA[Post.js]
+            UA[User.js]
+            LA[Like.js]
+        end
+    end
+
+    subgraph BE[FastAPI:8000]
+
+        %% ===== 1) API 계층 =====
+        subgraph AL[API Layer]
+            MN[main]
+            IR[Image Router]
+            PR[Post Router]
+            UR[User Router]
+            LR[Like Router]
+        end
+
+        %% ===== 2) 서비스 계층 =====
+        subgraph SL[Service Layer]
+            IS[Image Service]
+            PS[Post Service]
+            US[User Service]
+            LS[Like Service]
+        end
+
+        %% ===== 3) 데이터 액세스 계층 =====
+        subgraph DL[Data Access Layer]
+            IY[Image Repository]
+            PY[Post Repository]
+            UY[User Repository]
+            LY[Like Repository]
+        end
+
+    end
+
+    DB[(MySQL:3306)]
+
+    %% Frontend 흐름
+    U1 --> PG
+    PG --> AX
+    
+    AX --> PA
+    AX --> UA
+    AX --> LA
+
+    PA --> MN
+    UA --> MN
+    LA --> MN
+
+    %% API Layer → Service Layer
+    MN --> IR
+    MN --> PR
+    MN --> UR
+    MN --> LR
+
+    IR --> IS
+    PR --> PS
+    UR --> US
+    LR --> LS
+
+    %% Service Layer → Data Access Layer
+    IS --> IY
+    PS --> PY
+    US --> UY
+    LS --> LY
+
+    %% Data Access Layer → DB
+    IY --> DB
+    PY --> DB
+    UY --> DB
+    LY --> DB

@@ -1,1 +1,53 @@
-uvicorn fastApi:app --reload
+uvicorn main:app --reload
+
+
+
+
+CREATE TABLE `postdbuser` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `userIdData` varchar(50) NOT NULL,
+  `userPwData` varchar(255) NOT NULL,
+  `userBirthdayData` date NOT NULL,
+  `userNameData` varchar(50) NOT NULL,
+  `userEmailData` varchar(100) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_id` (`userIdData`),
+  UNIQUE KEY `uq_user_email` (`userEmailData`)
+) ENGINE=InnoDB
+  AUTO_INCREMENT=13
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `postdbid` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `subject` varchar(200) NOT NULL,
+  `content` text NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
+  `userid` int NOT NULL,
+  `changeCnt` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB
+  AUTO_INCREMENT=122
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `post_like` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `post_id` int NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_post` (`user_id`,`post_id`),
+  KEY `fk_like_post` (`post_id`),
+  CONSTRAINT `fk_like_post`
+    FOREIGN KEY (`post_id`) REFERENCES `postdbid` (`id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_like_user`
+    FOREIGN KEY (`user_id`) REFERENCES `postdbuser` (`id`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB
+  AUTO_INCREMENT=23
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_0900_ai_ci;
