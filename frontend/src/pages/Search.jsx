@@ -1,7 +1,9 @@
 import React from 'react'
 import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { getSearchPaging, getSearchList } from '../api/post';
-import { useState, useEffect } from "react";
+import { getSearchPaging, getSearchList, searchMyPosts, searchLikePosts, nextSearchPost,
+    prevSearchPost, nextSearchMyPost, prevSearchMyPost, nextSearchLikePost, prevSearchLikePost  } from '../api/post';
+import { useState, useEffect, useRef } from "react";
+import Detail from './Detail';
 
 // 페이지 번호 컴포넌트
 const PageButton = ({ pageNumber, isActive, onClick }) => {
@@ -26,7 +28,8 @@ export const Search = () => {
     const navigate = useNavigate()
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const { text } = useParams()
+    const { text, type } = useParams()
+    const [selectType, setSelectType] = useState(type);
 
     const [pageNum, setPageNum] = useState(() => {
         const viewParam = searchParams.get('view');
@@ -35,6 +38,102 @@ export const Search = () => {
     const [pageMax, setPageMax] = useState(); // 페이지 어디까지
     const [pagingNum, setPagingNum] = useState(); // 게시글 수
     const [pagingGroupSize] = useState(5); // 한 번에 보여줄 페이지 번호 개수
+
+    const [postId, setPostId] = useState();
+    const [userToken, setUserToken] = useState(localStorage.getItem("key"));
+
+    const movePost = (data) =>{
+        setMoveData(data)
+        if(data[0]>0){
+            (selectType == 'like'
+            ?nextSearchLikePost(data[1], userToken, text)
+            :selectType == 'mine'
+            ?nextSearchMyPost(data[1], userToken, text)
+            :nextSearchPost(data[1], text))
+            .then((res) => {
+                if(res){
+                    setPostId(res[0])
+                }else{
+                    alert("끝입니다.")
+                }
+            })
+            .catch((err) => console.error(err));
+        }else{
+            (selectType == 'like'
+            ?prevSearchLikePost(data[1], userToken, text)
+            :selectType == 'mine'
+            ?prevSearchMyPost(data[1], userToken, text)
+            :prevSearchPost(data[1], text))
+            .then((res) => {
+                if(res){
+                    setPostId(res[0])
+                }else{
+                    alert("끝입니다.")
+                }
+            })
+            .catch((err) => console.error(err));
+        }
+    }
+
+    const nextFlag = useRef(false);
+    const prevFlag = useRef(false);
+    const [moveData, setMoveData] = useState([]);
+    
+    useEffect(()=>{
+        try {
+            console.log(postAllData[0][0] , postId)
+            if (nextFlag.current == true && moveData[0]>0){
+                const nextPage = pagingState + 1;
+                setPagingState(nextPage);
+                setSearchParams({ page: String(nextPage), view: String(pageNum) }, { replace: true });
+                nextFlag.current = false;
+            } else if (prevFlag.current == true && moveData[0]<0){
+                const prevPage = Math.max(1, pagingState - 1);
+                setPagingState(prevPage);
+                setSearchParams({ page: String(prevPage), view: String(pageNum) }, { replace: true });
+                prevFlag.current = false;
+            }
+            if (postAllData[(postAllData.length)-1][0] == postId){
+                nextFlag.current = true;
+            } else if (postAllData[(postAllData.length)-1][0] !== postId){
+                nextFlag.current = false;
+            }
+            if (postAllData[0][0] == postId){
+                prevFlag.current = true;
+            } else if (postAllData[0][0] !== postId){
+                prevFlag.current = false;
+            }
+        } catch (error) {
+            console.log("ㅜㅜ : ", error)
+            
+            
+        }
+    },[postId])
+
+    const moveDetail = () =>{
+        if(postId){
+            return (
+                <Detail postId={postId} onClose={closeDetail} movePost={movePost} />
+            )
+        } else{
+            return (
+                <></>
+            )            
+        }
+    }
+
+    const selectTypeHandler = (event) => {
+        setSelectType(event.target.value);
+    };
+
+    const closeDetail = () => {
+        setPostId(null);
+    };
+
+    const goToDetail = (postId) =>{
+        setPostId(postId)
+    }
+
 
     // URL에서 페이지 정보 읽기
     const getPageFromURL = () => {
@@ -161,15 +260,36 @@ export const Search = () => {
     // 페이지당 데이터 조회
     useEffect(() => {
         const pageWhere = pagingState === 1 ? 0 : (Number(pagingState) - 1) * pageNum;
-
-        getSearchList(text, pageWhere, pageNum)
+        if (type == 'mine' && text !== undefined){
+            searchMyPosts(text, userToken, pageWhere, pageNum)
+            .then((res) => {
+                console.log("mine res")
+                if (res){
+                    setpostAllData(res)
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+        }else if(type == 'like' && text !== undefined){
+            searchLikePosts(text, userToken, pageWhere, pageNum)
             .then((res) => {
                 setpostAllData(res)
             })
             .catch((err) => {
                 console.error(err);
             });
-    }, [text, pageNum, pagingState]);
+        }else if(type == 'all' && text !== undefined){
+            getSearchList(text, pageWhere, pageNum)
+                .then((res) => {
+                    setpostAllData(res)
+                })
+                .catch((err) => {
+                    console.error(err);
+                });
+        }
+
+    }, [text, pageNum, pagingState, type]);
 
     useEffect(() => {
         if (pagingNum !== undefined) {
@@ -203,8 +323,8 @@ export const Search = () => {
     }, [pagingState, pageMax, pagingStartPage, pagingEndPage, pagingGroupSize]);
 
     const sqlSearch = () => {
-        if (!search) return;
-        navigate(`/search/${search}`);
+        if (!search && !selectType) return;
+        navigate(`/search/${search}/${selectType}`);
     }
 
     const pageNumber = (event) => { // select태그 이벤트 감지
@@ -215,19 +335,34 @@ export const Search = () => {
 return (
     <div className="max-w-4xl mx-auto p-6">
         {/* 제목 */}
-        <h1 className="text-2xl font-bold mb-6">
+        <h1 
+        onClick={()=>{navigate('/')}}
+        className="text-2xl font-bold mb-6">
             게시판
         </h1>
 
         {/* 검색 + 버튼 영역 */}
         <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
+
+                {userToken ? 
+                        <select
+                            onChange={selectTypeHandler}
+                            defaultValue={selectType}
+                            className="h-10 px-2 border border-gray-200 rounded bg-white text-sm cursor-pointer focus:outline-none focus:ring-1 focus:ring-gray-300"
+                        >
+                            <option value="all">전체</option>
+                            <option value="like">즐겨찾기</option>
+                            <option value="mine">나의 게시글</option>
+                        </select>
+                :<></>}
+
                 <input
-                    value={search}
+                    value={search || ""}
+                    defaultValue={text}
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                            
                             sqlSearch()
                         }
                     }}
@@ -278,7 +413,7 @@ return (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {postAllData.map((data) => (
                     <div
-                        onClick={() => {navigate(`/detail/${data[0]}`)}}
+                        onClick={() => {goToDetail(data[0])}}
                         key={data[0]}
                         className="border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition"
                     >
@@ -348,6 +483,7 @@ return (
                 </select>
             </div>
         </div>
+        {moveDetail()}
     </div>
 );
 

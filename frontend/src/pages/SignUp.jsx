@@ -42,26 +42,6 @@ export const Signup = () => {
     const [infoUserEmailDataUpdateFlag, setInfoUserEmailDataUpdateFlag] = useState(false);
     const [userInfoUpdateModalIsOpen, setUserInfoUpdateModalIsOpen] = useState(false);
 
-    // useBlocker(() => {
-    //     test()
-    // })
-    // const test = () =>{
-    //     // console.log("in test")
-    //     localStorage.removeItem("pwcheck");
-    // }
-
-
-    // useEffect(() => {
-    //     const legal = localStorage.getItem("pwcheck");
-    //     if (!legal){
-    //         alert("정상적인 접근이 아닙니다!\n돌아가시오!")
-    //         navigate(-1)
-    //     }else{
-    //         // console.log("환영~")
-    //     }
-    // },[]);
-    
-    
     
     useEffect(() => {
         if (userId){
@@ -83,9 +63,7 @@ export const Signup = () => {
     
     
     const signupInsert = () => {
-
         if (idFlag && !validateUserPw && !validateUserPwCheck && userBirthdayData && !validateUserName && !validateUserEmail) {
-
             const arr = [];
             arr.push(userId,
                 userPwData,
@@ -128,7 +106,7 @@ export const Signup = () => {
         } else{
             
             if(!idFlag) {
-                console.log(idFlag)
+                // console.log(idFlag)
                 alert("아이디를 다시 한번 확인해 주세요")
                 idFlagRef.current?.focus();
             }
@@ -137,7 +115,7 @@ export const Signup = () => {
                 pwFlagRef.current?.focus();
             }
             else if(validateUserPwCheck) {
-                console.log(validateUserPwCheck, !userBirthdayData, validateUserName)
+                // console.log(validateUserPwCheck, !userBirthdayData, validateUserName)
                 alert("패스워드를 다시 한번 확인해 주세요")
                 pwCheckFlagRef.current?.focus();
             }
@@ -170,11 +148,13 @@ export const Signup = () => {
     const idCheck = () => { // id가 영숫자 + 6자 이상인지 확인
         // validateUserId가 false일 경우 조합이 올바른 것이다.
 
+        
         let regExp = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{6,}$/;
         
         if (regExp.test(userIdData)) {	
             setValidateUserId(false)
-
+            
+            
             checkUserIdApi(userIdData)
             .then((res) => {
                 if (!res.exists){
@@ -198,10 +178,11 @@ export const Signup = () => {
         setUserInfoUpdateModalIsOpen(false);
     }
     const pwQueryHandler = () => {
-        console.log("userOldPwData", userOldPwData)
-        console.log("userId", userId)
-        console.log("userPwData", userPwData)
-        pwCheck(userId, userOldPwData)
+        // console.log("userOldPwData", userOldPwData)
+        // console.log("userId", userId)
+        // console.log("userPwData", userPwData)
+        console.log("userIdDatauserIdData : ",userIdData)
+        pwCheck(userIdData, userOldPwData)
             .then((res) => {
                 if (res === true){
                     signupInsert()
@@ -230,7 +211,7 @@ export const Signup = () => {
         if (userPwCheckData == userPwData && !validateUserPw && userPwData){
             setValidateUserPwCheck(false)
         }else{
-            console.log("validateUserPwCheck", validateUserPwCheck)
+            // console.log("validateUserPwCheck", validateUserPwCheck)
             setValidateUserPwCheck(true)
         }
     },[userPwCheckData, pwCheckBlurred])
@@ -339,12 +320,13 @@ export const Signup = () => {
             ?<div className="flex gap-2">
             <input
                 readOnly={true}
-                value={userPwData}
                 type="password"
                 className="flex-1 border rounded px-3 py-2 text-gray-700 text-left"
             />
             <button
-                onClick={()=>{setInfoUserPwDataUpdateFlag(true)}}
+                onClick={()=>{setInfoUserPwDataUpdateFlag(true)
+                    setUserPwData("")
+                }}
                 type="button"
                 className="px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
             >

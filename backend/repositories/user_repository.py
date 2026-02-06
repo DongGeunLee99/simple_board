@@ -2,10 +2,10 @@
 from db import cursor, conn
 
 
-def find_by_id_and_password(user_id: str, user_pw: str):
+def find_by_id_and_password(user_id: str):
     cursor.execute(
-        "SELECT * FROM postdbuser WHERE id = %s AND userPwData = %s",
-        (user_id, user_pw),
+        "SELECT * FROM postdbuser WHERE userIdData = %s",
+        (user_id,),
     )
     return cursor.fetchone()
 
@@ -13,6 +13,11 @@ def find_by_id_and_password(user_id: str, user_pw: str):
 def find_by_id(user_id: str):
     cursor.execute("SELECT * FROM postdbuser WHERE id = %s", (user_id,))
     return cursor.fetchone()
+
+
+def find_by_pw(user_id: str):
+    cursor.execute("SELECT userPwData FROM postdbuser WHERE userIdData = %s", (user_id,))
+    return cursor.fetchone()[0]
 
 
 def count_by_user_id_data(user_id: str):
@@ -58,13 +63,13 @@ def update_user(user_pw: str, user_birthday: str, user_name: str, user_email: st
     return cursor.rowcount
 
 
-def find_for_login(user_id_data: str, user_pw_data: str):
+def find_for_login(user_id_data: str):
     cursor.execute(
         """
-        SELECT id, userBirthdayData, userNameData, userEmailData
+        SELECT id
         FROM postdbuser
-        WHERE userIdData = %s AND userPwData = %s
+        WHERE userIdData = %s
         """,
-        (user_id_data, user_pw_data),
+        (user_id_data),
     )
     return cursor.fetchone()

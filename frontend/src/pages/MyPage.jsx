@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getMyPaging, getMyPostList, deletePost } from '../api/post';
+import { getMyPaging, getMyPostList, deletePost, nextMyPost, prevMyPost, nextLikePost, prevLikePost } from '../api/post';
 import { getLikePaging, getLikePostList } from '../api/like';
-import { pwCheck } from '../api/user';
+import Detail from './Detail';
+import { toggleLike, checkLike } from '../api/like';
 
 // 페이지 번호 컴포넌트
 const PageButton = ({ pageNumber, isActive, onClick }) => {
@@ -25,22 +26,105 @@ const MyPage = () => {
 
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const [searchType, setSearchType] = useState('my');
     const [postAllData, setpostAllData] = useState([]);
     const [deleteModalIsOpen, setdeleteModalIsOpen] = useState(false);
-    const [userInfoUpdateModalIsOpen, setUserInfoUpdateModalIsOpen] = useState(false);
     const [postId, setPostId] = useState();
     const [deleteFlag, setDeleteFlag] = useState(false);
+    const [selectType, setSelectType] = useState('all');
+    
+    const nextFlag = useRef(false);
+    const prevFlag = useRef(false);
+    const [moveData, setMoveData] = useState([]);
+    useEffect(()=>{
+        try {
+            console.log(postAllData[0][0] , postId)
+            if (nextFlag.current == true && moveData[0]>0){
+                const nextPage = pagingState + 1;
+                setPagingState(nextPage);
+                setSearchParams({ page: String(nextPage), view: String(pageNum), tab: searchType }, { replace: true });
+                nextFlag.current = false;
+            } else if (prevFlag.current == true && moveData[0]<0){
+                const prevPage = Math.max(1, pagingState - 1);
+                setPagingState(prevPage);
+                setSearchParams({ page: String(prevPage), view: String(pageNum), tab: searchType }, { replace: true });
+                prevFlag.current = false;
+            }
+            if (postAllData[(postAllData.length)-1][0] == postId){
+                nextFlag.current = true;
+            } else if (postAllData[(postAllData.length)-1][0] !== postId){
+                nextFlag.current = false;
+            }
+            if (postAllData[0][0] == postId){
+                prevFlag.current = true;
+            } else if (postAllData[0][0] !== postId){
+                prevFlag.current = false;
+            }
+        } catch (error) {
+            // console.log("ㅜㅜ : ", error)
+        }
+    },[postId])
 
+    const movePost = (data) =>{
+        setMoveData(data)
+        if(data[0]>0){
+            (searchType == 'like'
+            ?nextLikePost(data[1], userId)
+            :nextMyPost(data[1], userId))
+            .then((res) => {
+                if(res){
+                    setPostId(res[0])
+                }else{
+                    alert("끝입니다.")
+                }
+            })
+            .catch((err) => console.error(err));
+        }else{
+            (searchType == 'like'
+            ?prevLikePost(data[1], userId)
+            :prevMyPost(data[1], userId))
+            .then((res) => {
+                if(res){
+                    setPostId(res[0])
+                }else{
+                    alert("끝입니다.")
+                }
+            })
+            .catch((err) => console.error(err));
+        }
+    }
+
+
+    const moveDetail = () =>{
+        if(postId){
+            // console.log("moveDetail", postId)
+            return (
+                <Detail postId={postId} onClose={closeDetail} movePost={movePost} />
+            )
+        } else{
+            return (
+                <></>
+            )            
+        }
+    }
+
+    const closeDetail = () => {
+        setPostId(null);
+    };
+
+    const goToDetail = (postId) =>{
+        setPostId(postId)
+    }
+
+    const [search, setSearch] = useState() 
     // URL에서 탭 정보 읽기 (my | like)
     const getTabFromURL = () => {
         const tab = searchParams.get('tab');
-        return tab === 'like' ? 'like' : 'my';
+        const tabValue = tab === 'like' ? 'like' : 'my';
+        setSearchType(tabValue);
+        return tabValue;
     };
     const [postState, setPostState] = useState(() => getTabFromURL());
-    const [userPwCheck, setUserPwCheck] = useState(false);
-    const [userPwData, setUserPwData] = useState("");
-    const pwRef = useRef();
-    
     const [pageNum, setPageNum] = useState(() => {
         const viewParam = searchParams.get('view');
         return viewParam ? parseInt(viewParam, 10) : 6;
@@ -66,14 +150,21 @@ const MyPage = () => {
     };
 
     const pagingEndPage = getPagingEndPage();
-
+    const sqlSearch = () => {
+        if (!search) return;
+        navigate(`/search/${search}/${selectType}`);
+    }
     const updateURL = (page) => {
         setSearchParams(
             { page: page.toString(), view: pageNum.toString(), tab: postState },
             { replace: true }
         );
     };
-
+    const selectTypeHandler = (event) => {
+        setSelectType(event.target.value);
+        console.log(event.target.value)
+    };
+    
     // 다음 페이징
     const pageListUp = () => {
         if (pagingEndPage < pageMax) {
@@ -131,40 +222,20 @@ const MyPage = () => {
 
 
     const myPostList = () => {
-        setPostState("my")
-    }
-    const likePostList = () => {
-        setPostState("like")
-    }
-
-    // 탭(나의/즐겨찾기) 변경 시 1페이지로 리셋
-    useEffect(() => {
+        setPostState("my");
+        setSearchType("my");
         setPagingState(1);
         setPagingStartPage(1);
-        updateURL(1);
-    }, [postState]);
+        setSearchParams({ page: '1', view: String(pageNum), tab: 'my' }, { replace: true });
+    }
+    const likePostList = () => {
+        setPostState("like");
+        setSearchType("like");
+        setPagingState(1);
+        setPagingStartPage(1);
+        setSearchParams({ page: '1', view: String(pageNum), tab: 'like' }, { replace: true });
+    }
 
-    const userPwCheckHandler = () => {
-        setUserPwData("")
-        setUserInfoUpdateModalIsOpen(true);
-    }
-    const closePwModalHandler = () => {
-        setUserInfoUpdateModalIsOpen(false);
-    }
-    const pwQueryHandler = () => {
-        pwCheck(userId, userPwData)
-            .then((res) => {
-                if (res === true){
-                    localStorage.setItem("pwcheck", "ok");
-                    navigate(-1)
-                }else{
-                    alert(res)
-                }
-            })
-            .catch((err) => {
-                console.error(err)
-            });
-    }
 
 
     const userLogOut= () => {
@@ -172,7 +243,6 @@ const MyPage = () => {
         navigate('/')
     }
 
-    
     const DeleteModal = () => {
         return (
             <div 
@@ -320,12 +390,29 @@ const MyPage = () => {
         setSearchParams({ page: pagingState.toString(), view: newPageNum, tab: postState }, { replace: true });
     }
 
+    const favoriteHandler = (postIdToToggle) => {
+        console.log(postIdToToggle)
+        const id = postIdToToggle ?? postId;
+        if (!id) return;
+        if (userId) {
+            toggleLike(userId, id)
+            .catch((err) => {
+                console.error(err);
+            });
+        } else {
+            alert("로그인 먼저 해주세요");
+            navigate('/login');
+        }
+    };
 
     return (
         <div className="max-w-4xl mx-auto p-6">
             {/* 상단 헤더 */}
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold">
+                <h1 
+                onClick={()=>{navigate('/')}}
+                className="text-2xl font-bold"
+                >
                     마이페이지
                 </h1>
     
@@ -353,14 +440,32 @@ const MyPage = () => {
             <div className="flex items-center justify-between mb-6">
                 {/* 검색 영역 */}
                 <div className="flex items-center gap-2">
+
+                    <select
+                        onChange={selectTypeHandler}
+                        className="h-10 px-2 border border-gray-200 rounded bg-white text-sm cursor-pointer focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    >
+                        <option value="all">전체</option>
+                        <option value="like">즐겨찾기</option>
+                        <option value="mine">나의 게시글</option>
+                    </select>
+
                     <input
+                        value={search || ""}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                sqlSearch()
+                            }
+                        }}
                         type="text"
-                        placeholder="내 게시글 검색"
+                        placeholder="검색어를 입력하세요"
                         className="border rounded px-3 py-2 w-64"
                     />
                     <button
+                        onClick={sqlSearch}
                         type="button"
-                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
                     >
                         검색
                     </button>
@@ -372,9 +477,6 @@ const MyPage = () => {
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            // 수정 로직 연결
-                            // userPwCheckHandler()
-                            // {()=>{navigate('/create')}}
                             navigate(`signup/${userId}`)
                         }}
                         type="button"
@@ -421,39 +523,59 @@ const MyPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {postAllData.map((data) => (
                     <div
-                        onClick={() => {navigate(`/detail/${data[0]}`)}}
+                        onClick={() => {goToDetail(data[0])}}
                         key={data[0]}
                         className="relative border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition"
                     >
                         {/* 게시글 수정 / 삭제 버튼 (우상단) - 내 게시글에서만 */}
                         {postState === "my" && (
-                            <div className="absolute top-2 right-2 z-10 flex gap-1">
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setPostId(data[0])
-                                        navigate(`/create/${data[0]}`);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
-                                >
-                                    수정
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setPostId(data[0])
-                                        setdeleteModalIsOpen(true);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                                >
-                                    삭제
-                                </button>
-                            </div>
+                        <div className="absolute top-2 right-2 z-10 flex gap-1 items-center">
+                            <button
+                            type="button"
+                            aria-label="수정"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setPostId(data[0]);
+                                navigate(`/create/${data[0]}`);
+                            }}
+                            className="p-1.5 rounded bg-gray-200 hover:bg-gray-300"
+                            >
+                            {/* 수정 아이콘 (solid) */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-4 h-4 text-gray-800"
+                            >
+                                <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-8.4 8.4a4.5 4.5 0 00-1.06 1.697l-1.306 4.35a.75.75 0 00.928.928l4.35-1.306a4.5 4.5 0 001.697-1.06l8.4-8.4z" />
+                            </svg>
+                            </button>
+
+                            <button
+                            type="button"
+                            aria-label="삭제"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setPostId(data[0]);
+                                setdeleteModalIsOpen(true);
+                            }}
+                            className="p-1.5 rounded bg-red-100 hover:bg-red-200"
+                            >
+                            {/* 삭제 아이콘 (solid) */}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="w-4 h-4 text-red-600"
+                            >
+                                <path d="M6.375 3A1.875 1.875 0 018.25 1.125h7.5A1.875 1.875 0 0117.625 3H22.5a.75.75 0 010 1.5h-1.06l-.812 14.217A2.25 2.25 0 0118.385 21.75H5.615a2.25 2.25 0 01-2.243-2.033L2.56 4.5H1.5a.75.75 0 010-1.5h4.875zm2.25 0h6.75v-.375a.375.375 0 00-.375-.375h-6a.375.375 0 00-.375.375V3zm9.64 1.5H5.735l.797 13.972a.75.75 0 00.748.678h9.44a.75.75 0 00.748-.678L18.265 4.5z" />
+                            </svg>
+                            </button>
+                        </div>
                         )}
+
 
                         {/* 이미지 영역 */}
                         <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
@@ -471,7 +593,7 @@ const MyPage = () => {
                         </div>
 
                         {/* 텍스트 영역 */}
-                        <div className="p-4">
+                        {/* <div className="p-4">
                             <h2 className="font-semibold text-base truncate mb-3">
                                 {data[1]}
                             </h2>
@@ -485,38 +607,71 @@ const MyPage = () => {
                                 </span>
                             </div>
                         </div>
+                    </div> */}
+
+                                            {/* 텍스트 영역 */}
+                                            <div className="p-4">
+                            {/* 제목 */}
+                            <div className="flex items-center mb-3 w-full">
+                            {/* 왼쪽 더미 영역 → 제목을 시각적 중앙에 맞추기 위한 보정 */}
+                            <div className="w-10 h-10" />
+
+                            <h2 className="font-semibold text-base truncate flex-1 text-center leading-10">
+                                {data[1]}
+                            </h2>
+
+                            <button
+                                type="button"
+                                onClick={(e)=>{
+                                    e.stopPropagation();
+                                    favoriteHandler(data[0]);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center
+                                        border rounded-md hover:border-yellow-400 group"
+                                aria-label="즐겨찾기"
+                            >
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                fill={data[6]==1 ? "currentColor" : "none"}
+                                className={`w-6 h-6 ${
+                                    data[6]==1
+                                    ? "text-yellow-400"
+                                    : "text-gray-400 group-hover:text-yellow-400"
+                                }`}
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M11.48 3.499a.562.562 0 011.04 0l2.162 5.5a.563.563 0
+                                    00.475.348l5.94.462a.563.563 0 01.321.988l-4.518 3.916a.563.563
+                                    0 00-.182.557l1.378 5.78a.562.562 0 01-.84.61l-5.08-3.065a.563.563
+                                    0 00-.586 0l-5.08 3.065a.562.562 0 01-.84-.61l1.378-5.78a.563.563
+                                    0 00-.182-.557L2.18 10.797a.563.563 0 01.321-.988l5.94-.462a.563.563
+                                    0 00.475-.348l2.162-5.5z"
+                                />
+                                </svg>
+                            </button>
+                            </div>
+
+                            {/* 하단 메타 정보 */}
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                                <span className="truncate">
+                                    {data[4]}
+                                </span>
+                                <span className="whitespace-nowrap">
+                                    {data[2].replace('T', ' ').substr(2,9)}
+                                    {data[5] == 1?`(수정됨)`:""}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 ))}
 
                 {/* 삭제 모달 */}
                 {deleteModalIsOpen && <DeleteModal />}
-
-                {/* 회원 정보 수정 모달 */}
-                {/* <div 
-                className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] ${userInfoUpdateModalIsOpen ? 'block':'hidden' }`}
-                >
-                <div 
-                    className="bg-white rounded p-6 w-80"
-                >
-                    <h2 className="text-lg font-bold mb-4">비밀번호 확인</h2>
-                    <input
-                        value={userPwData??""}
-                        onChange={(e) => setUserPwData(e.target.value)}
-                        type="password"
-                        placeholder="비밀번호를 입력하세요"
-                        className="w-full border rounded px-3 py-2 mb-4"
-                    />
-            
-                    <div className="flex justify-end gap-2">
-                    <button className="px-4 py-2 bg-gray-300 rounded" onClick={closePwModalHandler}>
-                        취소
-                    </button>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={pwQueryHandler}>
-                        확인
-                    </button>
-                    </div>
-                </div>
-                </div> */}
             </div>
 
             {/* 페이징 + 보기 갯수 */}
@@ -550,6 +705,7 @@ const MyPage = () => {
                     </select>
                 </div>
             </div>
+            {moveDetail()}
         </div>
     );
     

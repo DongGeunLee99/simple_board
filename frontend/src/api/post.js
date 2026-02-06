@@ -12,12 +12,13 @@ export const getPaging = async () => {
 };
 
 // 게시글 목록 조회 (페이징)
-export const getPostList = async (pageWhere, pageNum) => {
+export const getPostList = async (pageWhere, pageNum, userId) => {
     try {
         const response = await apiClient.get('/list', {
             params: {
                 pageWhere: pageWhere,
-                pageNum: pageNum
+                pageNum: pageNum,
+                userId: userId
             }
         });
         return response.data;
@@ -134,6 +135,41 @@ export const getSearchPaging = async (text) => {
     }
 };
 
+// 검색 (즐찾)
+export const searchLikePosts = async (text, userId, pageWhere, pageNum) => {
+    try {
+        const response = await apiClient.get('/mysqlSearchLikePost', {
+            params: { 
+                text: text,
+                userId : userId,
+                pageWhere: pageWhere,
+                pageNum: pageNum
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('검색 오류:', error);
+        throw error;
+    }
+};
+// 검색 (전체)
+export const searchMyPosts = async (text, userId, pageWhere, pageNum) => {
+    try {
+        const response = await apiClient.get('/mysqlSearchMyPost', {
+            params: { 
+                text: text,
+                userId : userId,
+                pageWhere: pageWhere,
+                pageNum: pageNum
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('검색 오류:', error);
+        throw error;
+    }
+};
+
 // 검색 결과 목록 (페이징)
 export const getSearchList = async (text, pageWhere, pageNum) => {
     try {
@@ -177,6 +213,196 @@ export const getMyPaging = async (userId) => {
         return response.data;
     } catch (error) {
         console.error('마이페이지 페이징 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 다음 게시글
+export const nextPost = async (postCreatedAt) => {
+    try {
+        const response = await apiClient.get('/nextPostSelect', {
+            params: { postCreatedAt: postCreatedAt }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 이전 게시글
+export const prevPost = async (postCreatedAt) => {
+    try {
+        const response = await apiClient.get('/prevPostSelect', {
+            params: { postCreatedAt: postCreatedAt }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 다음 게시글
+export const nextMyPost = async (postCreatedAt, userId) => {
+    try {
+        const response = await apiClient.get('/nextMyPostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 이전 게시글
+export const prevMyPost = async (postCreatedAt, userId) => {
+    try {
+        const response = await apiClient.get('/prevMyPostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 즐겨찾기 다음 게시글
+export const nextLikePost = async (postCreatedAt, userId) => {
+    try {
+        const response = await apiClient.get('/nextLikePostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 즐겨찾기 이전 게시글
+export const prevLikePost = async (postCreatedAt, userId) => {
+    try {
+        const response = await apiClient.get('/prevLikePostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+///////////////////////////////////////////////////////////////////////
+// 다음 게시글
+export const nextSearchPost = async (postCreatedAt, text) => {
+    try {
+        const response = await apiClient.get('/nextSearchPostSelect', {
+            params: {
+                postCreatedAt: postCreatedAt,
+                text: text
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 이전 게시글
+export const prevSearchPost = async (postCreatedAt, text) => {
+    try {
+        const response = await apiClient.get('/prevSearchPostSelect', {
+            params: {
+                postCreatedAt: postCreatedAt,
+                text: text
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 다음 게시글
+export const nextSearchMyPost = async (postCreatedAt, userId, text) => {
+    try {
+        const response = await apiClient.get('/nextSearchMyPostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId,
+                text: text
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 이전 게시글
+export const prevSearchMyPost = async (postCreatedAt, userId, text) => {
+    try {
+        const response = await apiClient.get('/prevSearchMyPostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId,
+                text: text
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 즐겨찾기 다음 게시글
+export const nextSearchLikePost = async (postCreatedAt, userId, text) => {
+    try {
+        const response = await apiClient.get('/nextSearchLikePostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId,
+                text: text
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
+        throw error;
+    }
+};
+
+// 나의 즐겨찾기 이전 게시글
+export const prevSearchLikePost = async (postCreatedAt, userId, text) => {
+    try {
+        const response = await apiClient.get('/prevSearchLikePostSelect', {
+            params: { 
+                postCreatedAt: postCreatedAt,
+                userId: userId,
+                text: text
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('게시글 상세 조회 오류:', error);
         throw error;
     }
 };

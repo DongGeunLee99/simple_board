@@ -1,6 +1,7 @@
 uvicorn main:app --reload
 
 
+backend/.env : SECRET_KEY = "89c94b717e0acc895b1d8b7b4a7192772c186d0ffe5de9d005bfcdc73638078f"
 
 
 CREATE TABLE `postdbuser` (

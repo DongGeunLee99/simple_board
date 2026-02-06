@@ -12,8 +12,9 @@ export const Login = () => {
     const loginCheck = () => {
         loginApi(userIdData, userPwData)
             .then((res) => {
-                if (res && res.user){
-                    localStorage.setItem("key", res.user[0]);
+                if (res.token){
+                    // console.log("됐따 : ", res.token)
+                    localStorage.setItem("key", res.token);
                     navigate('/')
                 }
             })

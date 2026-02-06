@@ -9,7 +9,6 @@ import Create from './pages/Create';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import MyPage from './pages/MyPage';
-import { UserInfoUpdate } from './pages/UserInfoUpdate';
 
 
 function App() {
@@ -33,9 +32,8 @@ export const router = createBrowserRouter([
       { path: 'detail/:postId', element: <Detail /> },
       { path: 'create', element: <Create /> },
       { path: 'create/:postId', element: <Create /> },
-      { path: 'search/:text', element: <Search /> },
+      { path: 'search/:text/:type', element: <Search /> },
       { path: 'mypage', element: <MyPage /> },
-      { path: 'mypage/userInfoUpdate/:userId', element: <UserInfoUpdate /> },
       { path: 'mypage/signup/:userId', element: <SignUp /> },
     ],
   },

@@ -1,5 +1,6 @@
 """좋아요 데이터 액세스."""
 from db import cursor, conn
+from utils.post_row import _row_to_list_with_image_url
 
 IMAGE_BASE_URL = "http://localhost:8000/images/"
 
@@ -64,3 +65,5 @@ def find_like(user_id: str, post_id: str):
         (user_id, post_id),
     )
     return cursor.fetchone()
+
+

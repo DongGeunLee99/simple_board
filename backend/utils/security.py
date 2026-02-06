@@ -9,11 +9,11 @@ key = os.getenv("SECRET_KEY")
 
 
 def passWordEncode(passWord : str):
-    return bcrypt.hashpw(passWord.encode('utf-8'), bcrypt.gensalt())
+    return bcrypt.hashpw(passWord.encode('utf-8'), bcrypt.gensalt()).decode()
 
 
 def passWordCheck(passWord : str, check : str):
-    return bcrypt.checkpw(check.encode('utf-8'), passWord)
+    return bcrypt.checkpw(passWord.encode('utf-8'), check.encode('utf-8'))
 
 
 def tokenEncode(userId : str):

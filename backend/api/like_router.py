@@ -7,7 +7,7 @@ router = APIRouter()
 
 
 @router.get("/postgood")
-async def postgood(userId: int, postId: int):
+async def postgood(userId: str, postId: int):
     return like_service.toggle_like(userId, postId)
 
 
@@ -23,4 +23,5 @@ async def postgoodpaging(userId: str):
 
 @router.get("/postgoodcheck")
 async def postgoodcheck(userId: str, postId: str):
+    print("userId############", userId)
     return like_service.check_liked(userId, postId)

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { getPaging, getPostList } from '../api/post';
+import { getPaging, getPostList, nextPost, prevPost } from '../api/post';
+import Detail from './Detail';
+import { toggleLike, checkLike } from '../api/like';
 
 // 페이지 번호 컴포넌트를 호이스팅
 const PageButton = ({ pageNumber, isActive, onClick }) => {
@@ -22,7 +24,7 @@ const PageButton = ({ pageNumber, isActive, onClick }) => {
 const Main = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const [postAllData, setpostAllData] = useState([]);
+    const [postAllData, setPostAllData] = useState([]);
     const [pageNum, setPageNum] = useState(() => {
         const viewParam = searchParams.get('view');
         return viewParam ? parseInt(viewParam, 10) : 6;
@@ -31,13 +33,138 @@ const Main = () => {
     const [pagingNum, setPagingNum] = useState([]); // 게시글 수
     const [pagingGroupSize] = useState(5); // 한 번에 보여줄 페이지 번호 개수
     
-    const [search, setSearch] = useState(); // 검색 데이터
-    const [searchType, setSearchType] = useState("search"); // 기본: 제목
-
-
+    
+    
     // 회원 유지
     const [userRetention, setUserRetention] = useState(false);
     const [userToken, setUserToken] = useState(localStorage.getItem("key"));
+    
+    // 조회할 게시글 id
+    const [postId, setPostId] = useState();
+    
+    // 검색 관련
+    const [search, setSearch] = useState(); // 검색 데이터
+    const [selectType, setSelectType] = useState('all');
+    
+    const nextFlag = useRef(false);
+    const prevFlag = useRef(false);
+    const [moveData, setMoveData] = useState([]);
+    const pageLastPostId = useRef();
+    const pageFirstPostId = useRef();
+
+    const selectTypeHandler = (event) => {
+        setSelectType(event.target.value);
+    };
+
+    const movePost = (data) =>{
+        setMoveData(data)
+        if(data[0]>0){
+            nextPost(data[1])
+            .then((res) => {
+                if(res){
+                    setPostId(res[0])
+                }else{
+                    alert("끝입니다.")
+                }
+            })
+            .catch((err) => console.error(err));
+        }else{
+            prevPost(data[1])
+            .then((res) => {
+                if(res){
+                    setPostId(res[0])
+                }else{
+                    alert("끝입니다.")
+                }
+            })
+            .catch((err) => console.error(err));
+        }
+    }
+    
+    const favoriteHandler = (postIdToToggle) => {
+        console.log(postIdToToggle)
+        const id = postIdToToggle ?? postId;
+        if (!id) return;
+        if (userToken) {
+            toggleLike(userToken, id)
+            .catch((err) => {
+                console.error(err);
+            });
+        } else {
+            alert("로그인 먼저 해주세요");
+            navigate('/login');
+        }
+    };
+
+    const moveDetail = () =>{
+        if(postId){
+            return (
+                <Detail postId={postId} onClose={closeDetail} movePost={movePost} />
+            )
+        } else{
+            return (
+                <></>
+            )            
+        }
+    }
+
+    useEffect(()=>{
+        try {
+            if (nextFlag.current == true && moveData[0]>0){
+                const nextPage = pagingState + 1;
+                setPagingState(nextPage);
+                setSearchParams({ page: String(nextPage), view: String(pageNum) });
+                nextFlag.current = false;
+            } else if (prevFlag.current == true && moveData[0]<0){
+                const prevPage = Math.max(1, pagingState - 1);
+                setPagingState(prevPage);
+                setSearchParams({ page: String(prevPage), view: String(pageNum) });
+                prevFlag.current = false;
+            }
+            if (pageLastPostId.current == postId){
+                nextFlag.current = true;
+            } else if (pageLastPostId.current !== postId){
+                nextFlag.current = false;
+            }
+            if (pageFirstPostId.current == postId){
+                prevFlag.current = true;
+            } else if (pageFirstPostId.current !== postId){
+                prevFlag.current = false;
+            }
+        } catch (error) {
+            
+        }
+        
+    },[postId])
+
+
+    // useEffect(() => {
+    //     for (let index = 0; index < postAllData.length; index++) {
+    //         if (userToken){
+    //             checkLike(userToken, postAllData[index][0])
+    //                 .then((res) => {
+    //                 if (res === true){
+    //                     setIsFavorite(true)
+    //                 }
+    //             })
+    //             .catch((err) => {
+    //                 console.error(err);
+    //             });
+    //         }else{
+    //         console.log("out")
+    //         }
+    //     }
+    // },[postAllData])
+
+
+    const closeDetail = () => {
+        setPostId(null);
+    };
+
+
+    const goToDetail = (postId) =>{
+        setPostId(postId);
+    }
 
     useEffect(()=>{
         
@@ -77,7 +204,7 @@ const Main = () => {
     const pagingEndPage = getPagingEndPage();
 
     const updateURL = (page) => {
-        setSearchParams({ page: page.toString(), view: pageNum.toString() }, { replace: true });
+        setSearchParams({ page: page.toString(), view: pageNum.toString() })//, { replace: true });
     };
 
     // 다음 페이징
@@ -151,7 +278,7 @@ const Main = () => {
         
         // URL에 page나 view가 없으면 둘 다 함께 설정
         if (!searchParams.get('page') || !searchParams.get('view')) {
-            setSearchParams({ page: currentPage, view: currentView }, { replace: true });
+            setSearchParams({ page: currentPage, view: currentView })//, { replace: true });
             return;
         }
         
@@ -178,14 +305,18 @@ const Main = () => {
     useEffect(() => { // 게시글 보여주는 수
         const pageWhere = pagingState === 1 ? 0 : (Number(pagingState) - 1) * pageNum;
 
-        getPostList(pageWhere, pageNum)
+        (userToken !== null
+            ?getPostList(pageWhere, pageNum, userToken)
+            :getPostList(pageWhere, pageNum, ""))
         .then((res) => {
-            setpostAllData(res)
+            setPostAllData(res)
+            pageFirstPostId.current = res[0][0]
+            pageLastPostId.current = res[res.length - 1][0]
         })
         .catch((err) => {
             console.error(err);
         });
-    },[pageNum, pagingState]);
+    },[pageNum, pagingState, favoriteHandler]);
 
     useEffect(() => {
         if (pagingNum) {
@@ -273,17 +404,17 @@ const Main = () => {
                 </div>
             </div>
             <div className="flex items-center justify-between mb-4">
-                {/* 검색 영역 */}
                 <div className="flex items-center gap-2">
-                    {/* 검색 타입 선택 */}
-                    <select
-                        value={searchType}
-                        onChange={(e) => setSearchType(e.target.value)}
-                        className="border rounded px-2 py-2"
-                    >
-                        <option value="subject">제목</option>
-                        <option value="writer">작성자</option>
-                    </select>
+                    {userRetention ? 
+                        <select
+                            onChange={selectTypeHandler}
+                            className="h-10 px-2 border border-gray-200 rounded bg-white text-sm cursor-pointer focus:outline-none focus:ring-1 focus:ring-gray-300"
+                        >
+                            <option value="all">전체</option>
+                            <option value="like">즐겨찾기</option>
+                            <option value="mine">나의 게시글</option>
+                        </select>
+                    :<></>}
 
                     {/* 검색어 입력 */}
                     <input
@@ -291,8 +422,7 @@ const Main = () => {
                         onChange={(e) => setSearch(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && search) {
-                                // navigate(`/search/${searchType}/${search}`);
-                                navigate(`/search/${search}`);
+                                navigate(`/search/${search}/${selectType}`);
                             }
                         }}
                         type="text"
@@ -301,8 +431,7 @@ const Main = () => {
                     />
 
                     {/* 검색 버튼 */}
-                    <Link to={`/search/${search}`}>
-                    {/* <Link to={`/search/${searchType}/${search}`}> */}
+                    <Link to={`/search/${search}/${selectType}`}>
                         <button
                             type="button"
                             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
@@ -312,9 +441,7 @@ const Main = () => {
                     </Link>
                 </div>
 
-
                 {/* 게시글 작성 버튼 */}
-                {/* <Link to="/create"> */}
                     <button
                         onClick={() =>{
                             if (userRetention) {
@@ -335,7 +462,9 @@ const Main = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {postAllData.map((data) => (
                     <div
-                        onClick={() => {navigate(`/detail/${data[0]}`)}}
+                        onClick={() => {
+                            goToDetail(data[0])
+                        }}
                         key={data[0]}
                         className="border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition"
                     >
@@ -356,9 +485,49 @@ const Main = () => {
                         {/* 텍스트 영역 */}
                         <div className="p-4">
                             {/* 제목 */}
-                            <h2 className="font-semibold text-base truncate mb-3">
+                            <div className="flex items-center mb-3 w-full">
+                            {/* 왼쪽 더미 영역 → 제목을 시각적 중앙에 맞추기 위한 보정 */}
+                            <div className="w-10 h-10" />
+
+                            <h2 className="font-semibold text-base truncate flex-1 text-center leading-10">
                                 {data[1]}
                             </h2>
+
+                            <button
+                                type="button"
+                                onClick={(e)=>{
+                                    e.stopPropagation();
+                                    favoriteHandler(data[0]);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center
+                                        border rounded-md hover:border-yellow-400 group"
+                                aria-label="즐겨찾기"
+                            >
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                fill={data[6]==1 ? "currentColor" : "none"}
+                                className={`w-6 h-6 ${
+                                    data[6]==1
+                                    ? "text-yellow-400"
+                                    : "text-gray-400 group-hover:text-yellow-400"
+                                }`}
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M11.48 3.499a.562.562 0 011.04 0l2.162 5.5a.563.563 0
+                                    00.475.348l5.94.462a.563.563 0 01.321.988l-4.518 3.916a.563.563
+                                    0 00-.182.557l1.378 5.78a.562.562 0 01-.84.61l-5.08-3.065a.563.563
+                                    0 00-.586 0l-5.08 3.065a.562.562 0 01-.84-.61l1.378-5.78a.563.563
+                                    0 00-.182-.557L2.18 10.797a.563.563 0 01.321-.988l5.94-.462a.563.563
+                                    0 00.475-.348l2.162-5.5z"
+                                />
+                                </svg>
+                            </button>
+                            </div>
 
                             {/* 하단 메타 정보 */}
                             <div className="flex items-center justify-between text-sm text-gray-500">
@@ -408,6 +577,8 @@ const Main = () => {
                     </select>
                 </div>
             </div>
+
+            {moveDetail()}
         </div>
     );
     
